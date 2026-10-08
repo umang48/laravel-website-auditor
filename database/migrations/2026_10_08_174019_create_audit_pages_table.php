@@ -13,6 +13,14 @@ return new class extends Migration
     {
         Schema::create('audit_pages', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('audit_id')->constrained()->cascadeOnDelete();
+            $table->string('url');
+            $table->integer('status_code')->nullable();
+            $table->integer('response_time')->nullable(); // stored in milliseconds
+            $table->integer('page_size')->nullable(); // stored in bytes
+            $table->string('title')->nullable();
+            $table->text('meta_description')->nullable();
+            $table->string('canonical')->nullable();
             $table->timestamps();
         });
     }

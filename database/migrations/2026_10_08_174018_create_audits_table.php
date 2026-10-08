@@ -13,6 +13,11 @@ return new class extends Migration
     {
         Schema::create('audits', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('website_id')->constrained()->cascadeOnDelete();
+            $table->string('status')->default('pending'); // pending, processing, completed, failed
+            $table->integer('score')->nullable();
+            $table->timestamp('started_at')->nullable();
+            $table->timestamp('completed_at')->nullable();
             $table->timestamps();
         });
     }

@@ -3,9 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 
 class Audit extends Model
 {
+    use HasFactory;
+    
     protected $fillable = ['website_id', 'status', 'score', 'started_at', 'completed_at'];
 
     protected $casts = [

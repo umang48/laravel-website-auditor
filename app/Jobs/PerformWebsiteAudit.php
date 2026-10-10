@@ -4,7 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Audit;
 use App\Models\Website;
-
+use App\Services\AuditScoringService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -22,7 +22,8 @@ class PerformWebsiteAudit implements ShouldQueue
         public Audit $audit
     ) {}
 
-    public function handle(): void
+    // 2. Inject the service into the handle method
+    public function handle(AuditScoringService $scoringService): void
     {
         $this->audit->update([
             'status' => 'processing',
@@ -41,32 +42,26 @@ class PerformWebsiteAudit implements ShouldQueue
                 'page_size' => strlen($response->body()),
             ]);
 
-            // 1. Suppress warnings for malformed HTML (very common on real websites)
             libxml_use_internal_errors(true);
             $dom = new \DOMDocument();
-            // Load the HTML body, falling back to an empty string if null
             $dom->loadHTML($response->body() ?: '<html></html>');
             $xpath = new \DOMXPath($dom);
             libxml_clear_errors();
 
-            // 2. Extract SEO elements
             $titleNode = $dom->getElementsByTagName('title')->item(0);
             $title = $titleNode ? trim($titleNode->nodeValue) : null;
 
-            // XPath checks for 'description' regardless of uppercase/lowercase attributes
             $metaDescNode = $xpath->query('//meta[translate(@name, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz")="description"]/@content')->item(0);
             $metaDescription = $metaDescNode ? trim($metaDescNode->nodeValue) : null;
 
             $h1Node = $dom->getElementsByTagName('h1')->item(0);
             $h1 = $h1Node ? trim($h1Node->nodeValue) : null;
 
-            // 3. Update the page record with extracted data
             $page->update([
                 'title' => $title ? substr($title, 0, 255) : null,
                 'meta_description' => $metaDescription,
             ]);
 
-            // 4. Analyze and compile issues
             $issues = [];
 
             if (!$title) {
@@ -99,14 +94,16 @@ class PerformWebsiteAudit implements ShouldQueue
                 ];
             }
 
-            // 5. Save all issues to the database using Eloquent's createMany
             if (!empty($issues)) {
                 $page->issues()->createMany($issues);
             }
 
+            // 3. Use the injected service to calculate the score
+            $finalScore = $scoringService->calculateScore($issues);
+
             $this->audit->update([
                 'status' => 'completed',
-                'score' => empty($issues) ? 100 : (100 - (count($issues) * 10)), // Basic dynamic scoring
+                'score' => $finalScore,
                 'completed_at' => now(),
             ]);
 

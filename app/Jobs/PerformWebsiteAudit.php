@@ -2,9 +2,12 @@
 
 namespace App\Jobs;
 
+use App\Events\AuditCompleted;
+
 use App\Models\Audit;
 use App\Models\Website;
 use App\Services\AuditScoringService;
+
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -107,7 +110,14 @@ class PerformWebsiteAudit implements ShouldQueue
                 'completed_at' => now(),
             ]);
 
+            AuditCompleted::dispatch($this->audit);
+
         } catch (\Exception $e) {
+
+
+            // Add this line to reveal the hidden error
+            \Illuminate\Support\Facades\Log::error('Audit Job Crashed: ' . $e->getMessage());
+
             $this->audit->update([
                 'status' => 'failed',
                 'completed_at' => now(),

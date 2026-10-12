@@ -14,9 +14,10 @@ class WebsiteController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $websites = Website::latest()->paginate(10);
+        // Only fetch websites belonging to the logged-in user
+        $websites = $request->user()->websites()->latest()->paginate(10);
         
         return WebsiteResource::collection($websites);
     }
@@ -26,21 +27,17 @@ class WebsiteController extends Controller
      */
     public function store(StoreWebsiteRequest $request)
     {
-        // 1. Get only the validated data ('name' and 'url')
+       
+
         $validated = $request->validated();
 
-        // 2. Temporarily assign to the first user until we set up Sanctum Auth
-        $user = User::first(); 
-        
-        // 3. Create the website through the relationship
-        // This automatically sets the user_id on the website!
-        $website = $user->websites()->create([
+        // Automatically assign the website to the authenticated user
+        $website = $request->user()->websites()->create([
             'name' => $validated['name'],
             'url' => $validated['url'],
             'status' => 'active',
         ]);
 
-        // 4. Return the new resource (Laravel automatically sets a 201 Created HTTP status)
         return new WebsiteResource($website);
     }
 

@@ -110,6 +110,7 @@ class PerformWebsiteAudit implements ShouldQueue
                 'completed_at' => now(),
             ]);
 
+            // 2. Dispatch the event
             AuditCompleted::dispatch($this->audit);
 
         } catch (\Exception $e) {

@@ -8,6 +8,7 @@ use App\Models\User; // Add this
 use App\Http\Requests\StoreWebsiteRequest; // Add this
 use App\Http\Resources\WebsiteResource;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class WebsiteController extends Controller
 {
@@ -44,8 +45,11 @@ class WebsiteController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+   public function show(Website $website)
     {
+        // 2. Authorize the action before doing anything else
+        Gate::authorize('view', $website);
+
         $website->load('audits');
         
         return new WebsiteResource($website);
